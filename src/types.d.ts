@@ -1,9 +1,14 @@
 export type StartClientParams = {
-  configDir?: string
-  clientExtrasDir?: string
-}
+  configDir?: string;
+  clientExtrasDir?: string;
+};
 
 export type DexiEvent = {
-  type: "core" | "keypress"
-  data: string
-}
+  type: "core" | "keypress";
+  data: string;
+};
+
+export type RpcRequest = {
+  method: string;
+  params: unknown;
+};

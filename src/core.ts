@@ -1,5 +1,5 @@
 import { readLines } from "io/mod.ts";
-import type { StartClientParams, DexiEvent } from "@/types.d.ts";
+import type { DexiEvent, RpcRequest, StartClientParams } from "@/types.d.ts";
 
 const CORE_PATH = "bin/core";
 
@@ -47,13 +47,27 @@ export class Core {
     }
   }
 
+  async request(req: RpcRequest) {
+    await this.sendMessage(JSON.stringify({ id: this.messageId, ...req }));
+    this.messageId++;
+  }
+
+  async newView(filename: string) {
+    await this.request({
+      method: "new_view",
+      params: {
+        "file_path": filename,
+      }
+    })
+  }
+
   async *receiveEvent(): AsyncIterable<DexiEvent> {
     const stdout = this.process.stdout!;
     for await (const message of readLines(stdout)) {
       const event: DexiEvent = {
         type: "core",
         data: message,
-      }
+      };
       yield event;
     }
   }

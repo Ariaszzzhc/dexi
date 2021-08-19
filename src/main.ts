@@ -1,22 +1,12 @@
-import { Core } from "@/core.ts";
-import { readKeypress } from "@/keypress.ts";
-import { DexiEvent } from "@/types.d.ts";
-import { MuxAsyncIterator } from "async/mod.ts";
+import { Command } from "cliffy/command/mod.ts";
+import { edit } from "@/editor.ts";
 
-const core = new Core();
+const cli = new Command();
+cli.name("dexi")
+  .version("0.1.0")
+  .description("Terminal frontend for xi-editro, built by deno.")
+  .arguments("<file> [string]");
 
-const mux = new MuxAsyncIterator<DexiEvent>();
-mux.add(readKeypress());
-mux.add(core.receiveEvent());
+const { args } = await cli.parse(Deno.args);
 
-core.startClient();
-
-for await (const event of mux) {
-  console.log(event.data);
-  if (event.data === "q") {
-    break;
-  }
-}
-
-core.close();
-Deno.exit();
+await edit(args[0]);
