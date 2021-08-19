@@ -1,31 +1,21 @@
 import type { DexiEvent } from "@/types.d.ts";
+import { keypress } from "cliffy/keypress/mod.ts";
 
 export async function* readKeypress(): AsyncIterable<DexiEvent> {
-  const stdin = Deno.stdin;
-
-
-  while (true) {
-    const buffer = new Uint8Array(1024);
-    Deno.setRaw(stdin.rid, true);
-    const length = await stdin.read(buffer);
-    Deno.setRaw(stdin.rid, false);
-
-    if (length) {
-      const event: DexiEvent = {
-        type: 'keypress',
-        data: decodeKeypress(buffer.subarray(0, length)),
-      }
-
-      yield event;
+  for await (const event of keypress()) {
+    const res: DexiEvent = {
+      type: "keypress",
+      data: ""
     }
+    if (event.ctrlKey) {
+      res.data += "<C>"
+    }
+    if (event.altKey) {
+      res.data += "<A>"
+    }
+
+    res.data += event.key
+
+    yield res;
   }
-}
-
-export function decodeKeypress(buffer:Uint8Array): string {
-  const decoder = new TextDecoder();
-  const sequence = decoder.decode(buffer)
-
-  if (sequence.length === 1) return sequence;
-
-  return "\\" + sequence;
 }
