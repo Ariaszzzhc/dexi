@@ -1,5 +1,5 @@
 import { readLines } from "io/mod.ts";
-import type { StartClientParams } from "@/types.d.ts";
+import type { StartClientParams, DexiEvent } from "@/types.d.ts";
 
 const CORE_PATH = "bin/core";
 
@@ -29,7 +29,7 @@ export class Core {
   async startClient(params?: StartClientParams) {
     if (params) {
       const message = JSON.stringify({
-        "method": "new_view",
+        "method": "client_started",
         "params": {
           "config_dir": params.configDir,
           "client_extras_dir": params.clientExtrasDir,
@@ -39,7 +39,7 @@ export class Core {
       await this.sendMessage(message);
     } else {
       const message = JSON.stringify({
-        "method": "new_view",
+        "method": "client_started",
         "params": {},
       });
 
@@ -47,9 +47,15 @@ export class Core {
     }
   }
 
-  receiveMessage(): AsyncIterable<unknown> {
+  async *receiveEvent(): AsyncIterable<DexiEvent> {
     const stdout = this.process.stdout!;
-    return readLines(stdout);
+    for await (const message of readLines(stdout)) {
+      const event: DexiEvent = {
+        type: "core",
+        data: message,
+      }
+      yield event;
+    }
   }
 
   close() {
