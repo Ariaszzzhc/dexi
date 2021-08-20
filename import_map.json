@@ -4,6 +4,7 @@
     "fs/": "https://deno.land/std@0.105.0/fs/",
     "io/": "https://deno.land/std@0.105.0/io/",
     "async/": "https://deno.land/std@0.105.0/async/",
+    "signal/": "https://deno.land/std@0.105.0/signal/",
     "cliffy/": "https://deno.land/x/cliffy@v0.19.5/",
     "/": "./",
     "./": "./",

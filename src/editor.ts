@@ -3,23 +3,60 @@ import { readKeypress } from "@/keypress.ts";
 import { DexiEvent } from "@/types.d.ts";
 import { MuxAsyncIterator } from "async/mod.ts";
 
-export async function edit(filename: string) {
-  const core = new Core();
+export class Editor {
+  core: Core;
+  filename: string;
+  viewId: string;
+  events: MuxAsyncIterator<DexiEvent>;
 
-  const mux = new MuxAsyncIterator<DexiEvent>();
-  mux.add(readKeypress());
-  mux.add(core.receiveEvent());
+  constructor(filename: string) {
+    this.filename = filename;
+    this.viewId = "";
 
-  core.startClient();
+    this.core = new Core();
 
-  core.newView(filename);
+    // prepare events generator
+    this.events = new MuxAsyncIterator<DexiEvent>();
+    this.events.add(readKeypress());
+    this.events.add(this.core.receiveEvent());
 
-  for await (const event of mux) {
-    console.log(event.data);
-    if (event.data === "q") {
-      break;
+    // start client
+    this.core.startClient();
+    this.core.newView(filename);
+  }
+
+  async init() {
+    const { columns, rows } = await getWindowSize()
+  }
+
+  async edit() {
+    for await (const event of this.events) {
+      if (event.type === "core") {
+        await this.resolveCoreEvent(event.data);
+      } else {
+        if (event.data === "q") {
+          break;
+        }
+        await this.resolveKeypressEvent(event.data);
+      }
     }
   }
 
-  core.close();
+  async resolveCoreEvent(eventData: string) {
+  }
+
+  async resolveKeypressEvent(eventData: string) {
+  }
+
+  async saveFile() {
+  }
+
+  async close() {
+    await this.saveFile();
+    this.core.close();
+  }
+}
+
+async function getWindowSize() {
+  return await Deno.consoleSize(Deno.stdout.rid)
 }
