@@ -1,5 +1,8 @@
 import { Core } from "./core.ts";
-import { DexiWindow } from "./window.ts"
+import { DexiWindow } from "./window.ts";
+import type { Op } from "./types.d.ts";
+
+const SPACES_IN_LINE_SECTION = 2;
 
 interface Line {
   raw: string;
@@ -40,7 +43,7 @@ class Buffer {
   }
 }
 
-class View {
+export class View {
   id: string;
   cursor: Cursor;
   buffer: Buffer;
@@ -57,16 +60,14 @@ class View {
       y: 0,
     };
     this.screenStart = 0;
-    this.win = new DexiWindow(Deno.stdout.rid);
+    this.win = new DexiWindow({ x: 0, y: 0 });
     this.buffer = new Buffer();
     this.ctx = core;
     this.lineSectionWidth = 0;
-  }
 
-  async init() {
-    const { width, height } = await this.win.size();
+    const { width, height } = this.win.size();
 
-    await this.ctx.request({
+    this.ctx.request({
       method: "edit",
       params: {
         "method": "resize",
@@ -78,7 +79,7 @@ class View {
       },
     });
 
-    await this.ctx.request({
+    this.ctx.request({
       method: "edit",
       params: {
         "method": "scroll",
@@ -88,9 +89,9 @@ class View {
     });
   }
 
-  saveFile() {
+  async saveFile() {
     if (this.filename) {
-      this.ctx.request({
+      await this.ctx.request({
         method: "save",
         params: {
           "view_id": this.id,
@@ -100,8 +101,8 @@ class View {
     }
   }
 
-  async moveCursor(line: number, column: number ) {
-    const { height } = await this.win.size();
+  async moveCursor(line: number, column: number) {
+    const { height } = this.win.size();
 
     let cursorY = line - this.screenStart;
     let scroll = false;
@@ -111,45 +112,122 @@ class View {
       scroll = true;
       cursorY -= cursorY - height + 1;
     } else if (cursorY <= -1) {
-      this.screenStart -= Math.abs(cursorY)
+      this.screenStart -= Math.abs(cursorY);
       scroll = true;
       cursorY = 0;
     }
 
     this.cursor.x = column + this.lineSectionWidth;
-    this.cursor.y = cursorY
+    this.cursor.y = cursorY;
 
     if (scroll) {
       this.redraw(RedrawBehavior.Everything);
     } else {
-      this.win.moveCursor(this.cursor.y, this.cursor.x);
-      this.win.refresh();
+      await this.win.moveCursor(this.cursor.y, this.cursor.x);
     }
   }
 
-  async redraw(behavior: RedrawBehavior) {
-    const winSize = await this.win.size();
+  async updateBuffer(ops: Array<Op>) {
+    const newBuffer = new Buffer();
+    let oldIdx = 0;
+    let newIdx = 0;
 
-    let bufferLength: number
+    for (const op of ops) {
+      switch (op.op) {
+        case "copy":
+          const isDirty = oldIdx !== newIdx;
+
+          for (let i = 0; i < op.n; i++) {
+            const oldBuffer = this.buffer.lines[oldIdx + i];
+            newBuffer.lines.push({
+              raw: oldBuffer.raw,
+              ln: op.ln,
+              isDirty,
+              isValid: true,
+            });
+
+            newIdx += 1;
+          }
+
+          oldIdx += op.n;
+          break;
+
+        case "skip":
+          oldIdx += op.n;
+          break;
+
+        case "invalidate":
+          for (let _ = 0; _ < op.n; _++) {
+            newBuffer.lines.push({
+              raw: "",
+              isDirty: true,
+              isValid: true,
+            });
+          }
+
+          break;
+
+        case "ins":
+          if (op.lines) {
+            for (const line of op.lines) {
+              newBuffer.lines.push({
+                raw: line.text!,
+                ln: line.ln,
+                isDirty: true,
+                isValid: true,
+              });
+              newIdx += 1;
+            }
+          }
+
+          break;
+
+        default:
+          console.error(`unhandled update: ${op}`);
+      }
+    }
+
+    this.lineSectionWidth = newBuffer.totalLength.toString().length +
+      SPACES_IN_LINE_SECTION;
+    this.buffer = newBuffer;
+    await this.redraw(RedrawBehavior.OnlyDirty);
+  }
+
+  async redraw(behavior: RedrawBehavior) {
+    const winSize = this.win.size();
+
+    let bufferLength: number;
     if (this.buffer.linesAvailableAfter(this.screenStart) < winSize.height) {
       bufferLength = this.buffer.linesAvailableAfter(this.screenStart);
     } else {
       bufferLength = winSize.height;
     }
 
-    const lines = this.buffer.lines.splice(this.screenStart)
+    const lines = this.buffer.lines.splice(this.screenStart);
 
-    lines.forEach((line, index) => {
-      if (behavior === RedrawBehavior.Everything || line.isDirty) {
+    for (let index = 0; index < lines.length; index++) {
+      if (behavior === RedrawBehavior.Everything || lines[index].isDirty) {
         // TODO: window move curser and clear line
-        // this.win.moveCursorAndClearLine(index)
-        let ln: string;
-        if (line.ln) {
-          ln = line.ln.toString();
-        } else {
-          ln = "";
-        }
+        await this.win.moveCursorAndClearLine(index);
+        // let ln: string;
+        // if (lines[index].ln) {
+        //   ln = lines[index].ln!.toString();
+        // } else {
+        //   ln = "";
+        // }
+
+        // const lineSize = this.lineSectionWidth - SPACES_IN_LINE_SECTION;
+        // let lineSection =
+        await this.win.appendStr(lines[index].raw);
       }
-    })
+    }
+
+    if (bufferLength < winSize.height) {
+      for (let i = bufferLength; i < winSize.height; i++) {
+        await this.win.moveCursorAndClearLine(i);
+      }
+    }
+
+    await this.win.moveCursor(this.cursor.y, this.cursor.x);
   }
 }

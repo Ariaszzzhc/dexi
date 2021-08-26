@@ -9,7 +9,7 @@ cli.name("dexi")
 
 const { args } = await cli.parse(Deno.args);
 
-const editor = new Editor(args[0]);
+const editor = new Editor();
 
 await editor.edit();
 

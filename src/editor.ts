@@ -2,18 +2,18 @@ import { Core } from "@/core.ts";
 import { readKeypress } from "@/keypress.ts";
 import type  { DexiEvent, UpdateParams } from "@/types.d.ts";
 import { MuxAsyncIterator } from "async/mod.ts";
+import { View } from "@/view.ts";
 
 export class Editor {
   core: Core;
-  filename: string;
-  viewId: string;
+  views: Map<string, View>;
+  currentView: string;
   events: MuxAsyncIterator<DexiEvent>;
 
-  constructor(filename: string) {
-    this.filename = filename;
-    this.viewId = "";
-
+  constructor() {
+    this.currentView = "";
     this.core = new Core();
+    this.views = new Map<string, View>();
 
     // prepare events generator
     this.events = new MuxAsyncIterator<DexiEvent>();
@@ -22,7 +22,6 @@ export class Editor {
 
     // start client
     this.core.startClient();
-    this.core.newView(filename);
   }
 
   async edit() {
@@ -49,7 +48,7 @@ export class Editor {
 
           case "update":
             const params = data["params"] as UpdateParams;
-
+            this.handleUpdate(params);
             break;
 
           case "measure_width":
@@ -105,9 +104,11 @@ export class Editor {
       } else {
         const result = data["result"]
         if (result) {
-          this.viewId = result
+          this.currentView = result
         }
       }
+    } catch {
+      console.error("Unknown error");
     }
   }
 
@@ -115,11 +116,24 @@ export class Editor {
   }
 
   async handleUpdate(params: UpdateParams) {
+    const id = params["view-id"]
+    this.createView(id);
+    const view = this.views.get(id);
 
+    if (view) {
+      await view.updateBuffer(params.ops);
+    }
   }
 
-  async createView() {
+  createView(viewId: string) {
+    if (this.views.has(viewId)) {
+      return;
+    }
 
+    const view = new View(viewId, this.core);
+    this.views.set(viewId, view);
+
+    this.currentView = viewId
   }
 
   async saveFile() {
