@@ -1,7 +1,7 @@
 import { Core } from "@/core.ts";
 import { readKeypress } from "@/keypress.ts";
 import type  { DexiEvent, UpdateParams } from "@/types.d.ts";
-import { MuxAsyncIterator } from "async/mod.ts";
+import { MuxAsyncIterator } from "std/async/mod.ts";
 import { View } from "@/view.ts";
 
 export class Editor {

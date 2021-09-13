@@ -1,3 +1,6 @@
+import { ansi } from "cliffy/ansi/mod.ts"
+
+const { cursorTo, eraseLine } = ansi
 export class DexiWindow {
   writer: typeof Deno.stdout;
   pos: { x: number; y: number };
@@ -17,19 +20,21 @@ export class DexiWindow {
   }
 
   async moveCursor(y: number, x: number) {
-    const goto = `\x1b[${this.pos.y + y + 1};${this.pos.x + x + 1}H`;
-    await this.write(goto);
+    await this.writeBuffer(cursorTo(this.pos.x + x + 1, this.pos.y + y + 1).toBuffer())
   }
 
   async moveCursorAndClearLine(line: number) {
-    const goto = `\x1b[${this.pos.y + line + 1};${1}H`;
-    const clear = ``
-    await this.write(`${goto}${clear}`);
+    const action = cursorTo(1, this.pos.y + line + 1) + eraseLine()
+    await this.write(action);
   }
 
   async write(str: string) {
     const encoder = new TextEncoder();
     await Deno.stdout.write(encoder.encode(str));
+  }
+
+  async writeBuffer(buf: Uint8Array) {
+    await Deno.stdout.write(buf);
   }
 
   async appendStr(str: string) {

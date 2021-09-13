@@ -1,4 +1,4 @@
-import { readLines } from "io/mod.ts";
+import { readLines } from "std/io/mod.ts";
 import type { DexiEvent, RpcRequest, StartClientParams } from "@/types.d.ts";
 
 const CORE_PATH = "bin/core";
