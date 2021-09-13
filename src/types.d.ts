@@ -9,6 +9,7 @@ export type DexiEvent = {
 };
 
 export type RpcRequest = {
+  id?: number;
   method: string;
   params: unknown;
 };

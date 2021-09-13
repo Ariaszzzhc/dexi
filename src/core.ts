@@ -48,17 +48,18 @@ export class Core {
   }
 
   async request(req: RpcRequest) {
-    await this.sendMessage(JSON.stringify({ id: this.messageId, ...req }));
-    this.messageId++;
+    await this.sendMessage(JSON.stringify({ ...req }));
   }
 
   async newView(filename: string) {
     await this.request({
+      id: this.messageId,
       method: "new_view",
       params: {
         "file_path": filename,
-      }
-    })
+      },
+    });
+    this.messageId++;
   }
 
   async *receiveEvent(): AsyncIterable<DexiEvent> {

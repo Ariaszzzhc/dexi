@@ -67,17 +67,17 @@ export class View {
 
     const { width, height } = this.win.size();
 
-    // this.ctx.request({
-    //   method: "edit",
-    //   params: {
-    //     "method": "resize",
-    //     "view_id": this.id,
-    //     "params": {
-    //       "width": width,
-    //       "height": height,
-    //     },
-    //   },
-    // });
+    this.ctx.request({
+      method: "edit",
+      params: {
+        "method": "resize",
+        "view_id": this.id,
+        "params": {
+          "width": width,
+          "height": height,
+        },
+      },
+    });
 
     this.ctx.request({
       method: "edit",
@@ -138,7 +138,6 @@ export class View {
         case "copy":
           {
             const isDirty = oldIdx !== newIdx;
-
             for (let i = 0; i < op.n; i++) {
               const oldBuffer = this.buffer.lines[oldIdx + i];
               newBuffer.lines.push({
@@ -206,7 +205,7 @@ export class View {
       bufferLength = winSize.height;
     }
 
-    const lines = this.buffer.lines.splice(this.screenStart);
+    const lines = this.buffer.lines.slice(this.screenStart);
 
     for (let index = 0; index < lines.length; index++) {
       if (behavior === RedrawBehavior.Everything || lines[index].isDirty) {

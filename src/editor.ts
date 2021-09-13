@@ -27,7 +27,6 @@ export class Editor {
   async edit(filename: string) {
     await this.core.newView(filename);
     for await (const event of this.events) {
-      console.log(event)
       if (event.type === "core") {
         await this.resolveCoreEvent(event.data);
       } else {
@@ -123,6 +122,7 @@ export class Editor {
   }
 
   resolveKeypressEvent(eventData: string) {
+    // console.log(eventData);
   }
 
   async handleUpdate(params: UpdateParams) {
@@ -130,7 +130,6 @@ export class Editor {
     this.createView(id);
     const view = this.views.get(id);
     // console.dir(params)
-    // console.dir(view)
 
     if (view) {
       await view.updateBuffer(params.update.ops);
