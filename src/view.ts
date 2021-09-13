@@ -67,17 +67,17 @@ export class View {
 
     const { width, height } = this.win.size();
 
-    this.ctx.request({
-      method: "edit",
-      params: {
-        "method": "resize",
-        "view_id": this.id,
-        "params": {
-          "width": width,
-          "height": height,
-        },
-      },
-    });
+    // this.ctx.request({
+    //   method: "edit",
+    //   params: {
+    //     "method": "resize",
+    //     "view_id": this.id,
+    //     "params": {
+    //       "width": width,
+    //       "height": height,
+    //     },
+    //   },
+    // });
 
     this.ctx.request({
       method: "edit",
@@ -124,6 +124,7 @@ export class View {
       this.redraw(RedrawBehavior.Everything);
     } else {
       await this.win.moveCursor(this.cursor.y, this.cursor.x);
+      // await this.win.refresh();
     }
   }
 
@@ -135,21 +136,23 @@ export class View {
     for (const op of ops) {
       switch (op.op) {
         case "copy":
-          const isDirty = oldIdx !== newIdx;
+          {
+            const isDirty = oldIdx !== newIdx;
 
-          for (let i = 0; i < op.n; i++) {
-            const oldBuffer = this.buffer.lines[oldIdx + i];
-            newBuffer.lines.push({
-              raw: oldBuffer.raw,
-              ln: op.ln,
-              isDirty,
-              isValid: true,
-            });
+            for (let i = 0; i < op.n; i++) {
+              const oldBuffer = this.buffer.lines[oldIdx + i];
+              newBuffer.lines.push({
+                raw: oldBuffer.raw,
+                ln: op.ln,
+                isDirty,
+                isValid: true,
+              });
 
-            newIdx += 1;
+              newIdx += 1;
+            }
+
+            oldIdx += op.n;
           }
-
-          oldIdx += op.n;
           break;
 
         case "skip":
@@ -207,8 +210,8 @@ export class View {
 
     for (let index = 0; index < lines.length; index++) {
       if (behavior === RedrawBehavior.Everything || lines[index].isDirty) {
-        // TODO: window move curser and clear line
         await this.win.moveCursorAndClearLine(index);
+        // TODO line number
         // let ln: string;
         // if (lines[index].ln) {
         //   ln = lines[index].ln!.toString();
@@ -229,5 +232,6 @@ export class View {
     }
 
     await this.win.moveCursor(this.cursor.y, this.cursor.x);
+    // await this.win.refresh();
   }
 }

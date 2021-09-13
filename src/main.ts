@@ -11,6 +11,6 @@ const { args } = await cli.parse(Deno.args);
 
 const editor = new Editor();
 
-await editor.edit();
+await editor.edit(args[0]);
 
 editor.close();
